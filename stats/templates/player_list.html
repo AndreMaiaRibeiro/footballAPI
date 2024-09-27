@@ -1,0 +1,9 @@
+<h1>Premier League Top Scorers</h1>
+<ul>
+    {% for item in players %}
+    <li>
+        <img src="{{ item.team.crest }}" alt="{{ item.team.name }} logo" width="50" height="50">
+        <strong>{{ item.player.name }}</strong> - {{ item.team.name }} - Goals: {{ item.goals }}
+    </li>
+    {% endfor %}
+</ul>

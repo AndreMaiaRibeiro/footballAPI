@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premier League Player Search</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .player-card {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+        .position-header {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #343a40;
+        }
+        .player-name {
+            font-size: 1.25rem;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Premier League Player Search</h1>
+        <form class="form-inline my-4" method="GET" action="">
+            <input class="form-control mr-2" type="text" name="q" placeholder="Search for players..." value="{{ query }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </form>
+
+        {% if players %}
+    <div class="row">
+        {% for player in players %}
+            <div class="col-md-4">
+                <div class="player-card">
+                    <div class="player-name">{{ player.name }}</div>
+                    <div>Team: {{ player.team.name }}</div>
+                    <div>Position: {{ player.position }}</div>
+                    <div>Nationality: {{ player.nationality }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-warning" role="alert">
+        No players found for your search query.
+    </div>
+{% endif %}
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
