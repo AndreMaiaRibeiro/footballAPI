@@ -1,0 +1,63 @@
+<!-- templates/teams.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premier League Teams</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .team-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .team-item {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .team-item img {
+            width: 50px;
+            height: 50px;
+            margin-right: 20px;
+        }
+        .team-item:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Premier League Teams</h1>
+        <ul class="team-list">
+            {% for team in teams %}
+                <li class="team-item">
+                    <!-- Display the team crest (logo) -->
+                    <img src="{{ team.logo }}" alt="{{ team.name }} logo">
+                    <div>
+                        <!-- Display the team name -->
+                        <a href="{% url 'team_detail' team.id %}">{{ team.name }}</a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

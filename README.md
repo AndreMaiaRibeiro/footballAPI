@@ -1,4 +1,4 @@
-# Premier League Player Search
+Premier League Player Search
 
 ## Description
 This Django web application allows users to search for Premier League players by name. It retrieves player data from a football API, caches the information for performance optimization, and provides a user-friendly interface for searching players.

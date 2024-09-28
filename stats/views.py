@@ -3,34 +3,60 @@ from django.shortcuts import render
 from django.core.cache import cache
 import requests
 from django.conf import settings
+from bs4 import BeautifulSoup
+from django.http import JsonResponse
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+import time
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from . import scrape
 
-def cache_premier_league_squads():
-    headers = {'X-Auth-Token': settings.FOOTBALL_API_KEY}
-    teams_url = f"{settings.FOOTBALL_API_URL}/competitions/PL/teams"
-    teams_response = requests.get(teams_url, headers=headers)
 
-    if teams_response.status_code == 200:
-        teams = teams_response.json().get('teams', [])
-        all_players = []
 
-        for team in teams:
-            squad_url = f"{settings.FOOTBALL_API_URL}/teams/{team['id']}"
-            squad_response = requests.get(squad_url, headers=headers)
+def player_detail(request, player_id, player_name):
+    player_data = scrape.scrape_player_data(player_id, player_name)  # Fetch the player data
+    
+    if player_data is None:
+        return JsonResponse({'error': f"No data found for player {player_name}"}, status=404)
+    
+    return JsonResponse(player_data, safe=False)
 
-            if squad_response.status_code == 200:
-                squad = squad_response.json().get('squad', [])
-                all_players.extend(squad)
 
-        cache.set('premier_league_players', all_players, timeout=86400)
+def index(request):
+    return render(request, 'home.html')
+
+
+def teams_list(request):
+    teams = scrape.scrape_team_data()  # Use the new scraper to get team data
+    return render(request, 'teams.html', {'teams': teams})
+
+def team_detail(request, team_id):
+    teams = scrape.scrape_team_data()  # Get team data
+    
+    # Ensure that the team_id is being compared as a string
+    team = next((team for team in teams if str(team['id']) == str(team_id)), None)
+    
+    if not team:
+        return JsonResponse({'error': 'Team not found'}, status=404)
+    
+    # Scrape players for the selected team
+    club_name = team['name'].replace(' ', '-')  # Format club name for the URL
+    players = scrape.scrape_club_squad(team_id, club_name)  # Get players from the scraper
+    
+    # Render the team details and player list in the template
+    return render(request, 'teamdetails.html', {'team': team, 'players': players})
+
 
 def player_search(request):
     query = request.GET.get('q', '').lower()
-    players = cache.get('premier_league_players')
 
-    # Fetch players if not in cache
-    if not players:
-        cache_premier_league_squads()
-        players = cache.get('premier_league_players')
+    # Scrape player list from the Premier League website
+    players = scrape.scrape_player_list()  # Scraper replaces the cache retrieval
+    print(players)
 
     if not players:
         return render(request, 'player_search.html', {'players': [], 'query': query})
@@ -39,3 +65,4 @@ def player_search(request):
     filtered_players = [player for player in players if query in player.get('name', '').lower()]
 
     return render(request, 'player_search.html', {'players': filtered_players, 'query': query})
+

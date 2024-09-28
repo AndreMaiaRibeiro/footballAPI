@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team.name }} - Team Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .team-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .team-info img {
+            width: 100px;
+            height: 100px;
+            margin-right: 20px;
+        }
+        .player-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .player-list li {
+            background-color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .player-list img {
+            width: 50px;
+            height: 70px;
+            margin-right: 15px;
+        }
+        .player-list li:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ team.name }}</h1>
+        <div class="team-info">
+            <!-- Display the team crest -->
+            <img src="{{ team.crest }}" alt="{{ team.name }} crest">
+            <div>
+                <p><strong>Coach:</strong> {{ team.coach.name }}</p>
+                <p><strong>Manager:</strong> {{ team.manager }}</p>
+                <!-- Display the country's flag -->
+                <img src="{{ player.image }}" alt="{{ player.name }} image" onerror="this.onerror=null; this.src='/static/images/placeholder.png';">
+            </div>
+        </div>
+        <h2>Players</h2>
+        <ul class="player-list">
+            {% for player in players %}
+                <li>
+                    <img src="{{ player.image }}" alt="{{ player.name }} image">
+                    <a href="{% url 'player_detail' player.id player.name %}">{{ player.name }}</a>
+                    <span> - {{ player.position }} ({{ player.nationality }})</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!-- templates/player_details.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ player.name }} - Player Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+        }
+        .player-info {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ player.name }}</h1>
+        <div class="player-info">
+            <p><strong>Position:</strong> {{ player.position }}</p>
+            <p><strong>Nationality:</strong> {{ player.nationality }}</p>
+            <p><strong>Date of Birth:</strong> {{ player.dateOfBirth }}</p>
+        </div>
+        
+        <h2>Player Statistics</h2>
+
+        {% if player_stats and player_stats.matches %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Competition</th>
+                        <th>Matches Played</th>
+                        <th>Goals</th>
+                        <th>Assists</th>
+                        <th>Yellow Cards</th>
+                        <th>Red Cards</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in player_stats.matches %}
+                        <tr>
+                            <td>{{ match.competition.name }}</td>
+                            <td>{{ match.played }}</td>
+                            <td>{{ match.goals }}</td>
+                            <td>{{ match.assists }}</td>
+                            <td>{{ match.yellowCards }}</td>
+                            <td>{{ match.redCards }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No statistics available for this player.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
