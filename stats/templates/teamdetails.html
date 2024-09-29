@@ -25,8 +25,8 @@
             margin-bottom: 20px;
         }
         .team-info img {
-            width: 100px;
-            height: 100px;
+            width: 150px;
+            height: 150px;
             margin-right: 20px;
         }
         .player-list {
@@ -48,8 +48,17 @@
             height: 70px;
             margin-right: 15px;
         }
+        .player-list .flag-icon {
+            width: 25px;
+            height: 18px;
+            margin-left: 10px;
+        }
         .player-list li:hover {
             background-color: #f0f0f0;
+        }
+        .player-details {
+            display: flex;
+            align-items: center;
         }
     </style>
 </head>
@@ -59,20 +68,19 @@
         <div class="team-info">
             <!-- Display the team crest -->
             <img src="{{ team.crest }}" alt="{{ team.name }} crest">
-            <div>
-                <p><strong>Coach:</strong> {{ team.coach.name }}</p>
-                <p><strong>Manager:</strong> {{ team.manager }}</p>
-                <!-- Display the country's flag -->
-                <img src="{{ player.image }}" alt="{{ player.name }} image" onerror="this.onerror=null; this.src='/static/images/placeholder.png';">
-            </div>
         </div>
         <h2>Players</h2>
         <ul class="player-list">
             {% for player in players %}
                 <li>
-                    <img src="{{ player.image }}" alt="{{ player.name }} image">
-                    <a href="{% url 'player_detail' player.id player.name %}">{{ player.name }}</a>
-                    <span> - {{ player.position }} ({{ player.nationality }})</span>
+                    <div class="player-details">
+                        <img src="{{ player.image }}" alt="{{ player.name }} image" onerror="this.onerror=null; this.src='/static/images/placeholder.png';">
+                        <div>
+                            <a href="{% url 'player_detail' player.player_id player.name|slugify %}">{{ player.name }}</a>
+                            <span> - {{ player.position }} ({{ player.nationality }})</span>
+                        </div>
+                        <img class="flag-icon" src="{{ player.flag_image }}" alt="{{ player.nationality }} flag">
+                    </div>
                 </li>
             {% endfor %}
         </ul>

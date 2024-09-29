@@ -11,4 +11,6 @@ class Player(models.Model):
     name = models.CharField(max_length=100)
     position = models.CharField(max_length=50)
     nationality = models.CharField(max_length=50)
+    flag_image = models.URLField(null=True, max_length=500)  # Add this field
+    stats = models.JSONField(null=True, blank=True)  # Add this for player stats
     image = models.URLField(null=True, blank=True)

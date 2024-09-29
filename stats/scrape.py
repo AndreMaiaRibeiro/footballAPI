@@ -10,11 +10,23 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import urllib.parse
 
 
 def scrape_club_squad(club_id, club_name):
+    # Ensure the team exists in the database, or create it if necessary
     team, created = Team.objects.get_or_create(id=club_id, defaults={'name': club_name.replace('-', ' ')})
 
+    # Fetch all players for this team
+    players_in_db = Player.objects.filter(team=team)
+
+    # If all players have stats in the database, return the current data without scraping
+    if all(player.stats for player in players_in_db):
+        print(f"Returning players data from the database for team {team.name}")
+        return list(players_in_db.values())  # Return the players if their stats exist in the database
+
+    # Proceed with scraping if stats are missing or no players are found
+    print(f"Scraping players data for team {team.name}")
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -29,27 +41,57 @@ def scrape_club_squad(club_id, club_name):
         for player_element in player_elements:
             try:
                 player_id = player_element.get_attribute("data-player-id")
-                first_name = player_element.find_element(By.CLASS_NAME, "stats-card__player-first").text
-                last_name = player_element.find_element(By.CLASS_NAME, "stats-card__player-last").text
-                name = f"{first_name} {last_name}"
+
+                # Check if the player already exists in the database and has stats
+                player = Player.objects.filter(player_id=player_id, team=team).first()
+                if player and player.stats:
+                    # If the player already has stats, return them directly from the database
+                    continue  # Skip scraping for this player if stats already exist
+
+                # Extract player data from the page
+                name_element = player_element.find_element(By.CLASS_NAME, "stats-card__player-name")
+                player_name = name_element.text
+
                 position = player_element.find_element(By.CLASS_NAME, "stats-card__player-position").text
-                nationality = player_element.find_element(By.CLASS_NAME, "stats-card__flag-icon").get_attribute("alt")
+
+                nationality = driver.execute_script(
+                    "return arguments[0].innerText || arguments[0].textContent;",
+                    player_element.find_element(By.CLASS_NAME, "stats-card__player-country")
+                )
+
+                flag_image_url = player_element.find_element(By.CLASS_NAME, "stats-card__flag-icon").get_attribute('src')
                 image_url = player_element.find_element(By.CLASS_NAME, "statCardImg").get_attribute('src')
 
-                Player.objects.update_or_create(
+                # Save or update the player record in the database
+                player, _ = Player.objects.update_or_create(
                     player_id=player_id,
                     team=team,
                     defaults={
-                        'name': name,
+                        'name': player_name,
                         'position': position,
                         'nationality': nationality,
+                        'flag_image': flag_image_url,
                         'image': image_url,
                     }
                 )
+
+                # If scraping was done, also populate player stats if they don't exist
+                if not player.stats:
+                    stats = scrape_player_data(player_id, player_name)
+                    player.stats = stats
+                    player.save()
+
             except NoSuchElementException as e:
-                print(f"Error extracting player details: {e}")
+                print(f"Error extracting data for player with ID: {player_id}. Error: {e}")
     finally:
         driver.quit()
+
+    # Return the updated list of players from the database
+    return list(Player.objects.filter(team=team).values())
+
+
+
+
 
 
 def scrape_player_list():
@@ -84,9 +126,39 @@ def scrape_player_list():
 
 
 
+def scrape_player_stats(soup):
+    stats = {}
+
+    # First, scrape the top 4 stats: Appearances, Wins, Goals, Losses
+    top_stats_section = soup.find('div', class_='player-stats__top-stats')
+    if top_stats_section:
+        top_stat_items = top_stats_section.find_all('div', class_='player-stats__top-stat')
+        if top_stat_items:
+            for top_stat in top_stat_items:
+                stat_label = top_stat.find('span', class_='player-stats__top-stat-value').contents[0].strip()  # Get the stat label
+                stat_value = top_stat.find('span', class_='allStatContainer').text.strip()  # Get the stat value
+                stats[stat_label] = stat_value
+
+    # Scrape stats from the main section (Goalkeeping, Defence, Attack, Discipline, Team Play)
+    stats_section = soup.find('ul', class_='player-stats__stats-wrapper')
+    if stats_section:
+        for stat_item in stats_section.find_all('li', class_='player-stats__stat'):
+            category_title = stat_item.find('div', class_='player-stats__stat-title').text.strip()
+            for stat_value in stat_item.find_all('div', class_='player-stats__stat-value'):
+                stat_name = stat_value.contents[0].strip()  # Get the stat name
+                stat_number = stat_value.find('span', class_='allStatContainer').text.strip()  # Get the stat value
+                stats[f"{category_title} - {stat_name}"] = stat_number
+
+    return stats
+
+
+
+
 def scrape_player_data(player_id, player_name):
     try:
-        player_url = f"https://www.premierleague.com/players/{player_id}/{player_name}/stats"
+        formatted_player_name = urllib.parse.quote(player_name.strip().replace('\n', '').replace(' ', '-').lower())
+
+        player_url = f"https://www.premierleague.com/players/{player_id}/{formatted_player_name}/stats"
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(player_url, headers=headers)
 
@@ -95,17 +167,38 @@ def scrape_player_data(player_id, player_name):
             return None
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        player_name = soup.find('div', class_='playerDetails').find('h1').text.strip()
-        stats = soup.find_all('span', class_='allStatContainer')
-        stats_data = {stat['data-stat']: stat.text.strip() for stat in stats}
+
+        # Get nationality and flag
+        nationality = soup.find('span', class_='player-overview__player-country').text.strip()
+        flag_image = soup.find('img', class_='player-overview__flag-icon').get('src')
+
+        # Locate the position inside the player overview section
+        position_section = soup.find('section', class_='player-overview__side-widget')
+        position_element = position_section.find('div', string="Position").find_next('div', class_='player-overview__info')
+
+        if not position_element:
+            print(f"Could not determine the position for player {player_name}.")
+            return None
+
+        position = position_element.get_text(strip=True).lower()
+        print(f"Position for {player_name}: {position}")
+
+        # Scrape the player's stats (Unified function for all positions)
+        stats = scrape_player_stats(soup)
 
         return {
             'name': player_name,
-            'stats': stats_data
+            'position': position,
+            'nationality': nationality,
+            'flag_image': flag_image,
+            'stats': stats
         }
     except Exception as e:
         print(f"Error fetching player data for {player_name}: {e}")
         return None
+
+
+
 
 
 def scrape_team_data():
